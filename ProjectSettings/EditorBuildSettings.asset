@@ -11,4 +11,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/level1.unity
     guid: 13340da919e7f8a49aa54eb5562c67e5
+  - enabled: 1
+    path: Assets/Scenes/MainMenu.unity
+    guid: c09f4b0b2a9226946aa44a3dd8ffdfa6
+  - enabled: 1
+    path: Assets/Scenes/ShadowTest.unity
+    guid: f6ae23e8d5319744984de9f74fa027b4
   m_configObjects: {}

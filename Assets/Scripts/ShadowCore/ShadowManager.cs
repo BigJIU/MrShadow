@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Object = System.Object;
 
 public class ShadowManager : MonoBehaviour
 {
@@ -16,6 +17,7 @@ public class ShadowManager : MonoBehaviour
     public GameObject pointLight;
     public GameObject Player;
     private float canvasScale = 100f;
+    private Vector3 lightPosi;
 
     private Dictionary<Transform, List<Vector2>> normalVertices;
 
@@ -44,20 +46,23 @@ public class ShadowManager : MonoBehaviour
         {
             createShadow(LightObjects.GetChild(i));
         }
-        
+
+        lightPosi = pointLight.transform.position;
 
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         templateLightMove();
-        //if (Input.GetKeyDown(KeyCode.O))
+        if (pointLight.transform.position != lightPosi)//Input.GetKeyDown(KeyCode.O))
         {
             foreach (Transform light in activateLightList)
             {
                 updateShadow(light);
             }
+
+            lightPosi = pointLight.transform.position;
         }
 
     }
@@ -92,6 +97,7 @@ public class ShadowManager : MonoBehaviour
     public void createShadow(Transform lightTransform)
     {
         GameObject tmpShadow = Instantiate(shadowPrefab, transform);
+        //tmpShadow.transform.position = lightTransform.po
         refDic.Add(lightTransform,tmpShadow.transform);
         SpriteRenderer lightSprite = lightTransform.gameObject.GetComponent<SpriteRenderer>();
         shadowPrefab.GetComponent<ShapeImage>().sprite = lightSprite.sprite;
@@ -146,7 +152,7 @@ public class ShadowManager : MonoBehaviour
         List<Vector2> vertices = new List<Vector2>( normalVertices[lightTransform].ToArray());
         //     new List<Vector2>();
         // shadowCollider.GetPoints(vertices);
-        tranformVector *= canvasScale;
+        //tranformVector *= canvasScale;
         Vector3 boundSize = shadowCollider.bounds.size;
         float ymin = 10000f;
         foreach (var ver in vertices)
@@ -154,18 +160,24 @@ public class ShadowManager : MonoBehaviour
                 ymin = ver.y;
         for (int i = 0; i < vertices.Count; i++)
         {
-            vertices[i] = new Vector2(vertices[i].x-tranformVector.x*((boundSize.y+ymin-vertices[i].y)/boundSize.y), 
-                vertices[i].y);//*(1+tranformVector.y)
+            vertices[i] = new Vector2(vertices[i].x-tranformVector.x*((boundSize.y-vertices[i].y)/boundSize.y)*(1+tranformVector.y)*(1+tranformVector.y), //+ymin
+                vertices[i].y*(1+tranformVector.y));//*(1+tranformVector.y)
         }
-        Debug.Log(tranformVector.x);
+        
         bool tryset = refDic[lightTransform].GetComponent<EdgeCollider2D>().SetPoints(vertices);
     }
 
     private void imageTransform(Vector2 tranformVector, Transform lightTransform)
     {
         ShapeImage shapeImage = refDic[lightTransform].GetComponent<ShapeImage>();
-        shapeImage.offset = tranformVector.x * canvasScale / defaultXScale;
-        refDic[lightTransform].localScale = new Vector3(1,- 1 - tranformVector.y/defaultYScale,1);
+        Sprite tmpS = Sprite.Instantiate(shapeImage.sprite);
+        
+        shapeImage.sprite = tmpS;
+        shapeImage.offset = tranformVector.x * canvasScale * (1+tranformVector.y);
+        Debug.Log("x:"+ tranformVector.x);
+        Debug.Log("y:"+ (1+tranformVector.y));
+        refDic[lightTransform].GetComponent<RectTransform>().sizeDelta = new Vector2(tmpS.rect.width,tmpS.rect.height*(1+tranformVector.y));
+        //refDic[lightTransform].localScale = new Vector3(1,- 1 - tranformVector.y/defaultYScale,1);
     }
     
     
