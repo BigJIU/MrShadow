@@ -5,6 +5,7 @@ using UnityEngine;
 public class LightFollow : MonoBehaviour
 {
     public GameObject lightPole;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -14,6 +15,7 @@ public class LightFollow : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        
         transform.position = lightPole.transform.position;
     }
 }

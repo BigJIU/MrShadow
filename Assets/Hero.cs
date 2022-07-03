@@ -23,7 +23,7 @@ public class Hero : MonoBehaviour
     private Sensor_Prototype m_wallSensorR2;
     private Sensor_Prototype m_wallSensorL1;
     private Sensor_Prototype m_wallSensorL2;
-    public bool carryLight = true;
+    public bool carryLight = false;
     public bool Grounded = false;
     public bool Moving = false;
     private bool m_dead = false;
@@ -52,7 +52,7 @@ public class Hero : MonoBehaviour
         m_wallSensorL1 = transform.Find("WallSensor_L1").GetComponent<Sensor_Prototype>();
         m_wallSensorL2 = transform.Find("WallSensor_L2").GetComponent<Sensor_Prototype>();
 
-        carryLight = true;
+        carryLight = false;
 
         animEvents = GetComponent<HeroAnimEvents>();
     }
