@@ -21,7 +21,7 @@ public class LightObject : MonoBehaviour
             
             return;
         }
-        throw new NotImplementedException();
+        //throw new NotImplementedException();
     }
 
     
@@ -39,6 +39,6 @@ public class LightObject : MonoBehaviour
             
             return;
         }
-        throw new NotImplementedException();
+        //throw new NotImplementedException();
     }
 }

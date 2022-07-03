@@ -83,5 +83,10 @@ public class FuncObject: MonoBehaviour
     {
         StartCoroutine("Fade");
     }
+
+    public void debugLog(string a)
+    {
+        Debug.Log(a);
+    }
     
 }

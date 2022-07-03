@@ -16,6 +16,7 @@ public class ShadowManager : MonoBehaviour
 
     public GameObject shadowPrefab;
     public Transform LightObjects;
+    public List<Transform> IndividualLightObjects;
     public GameObject pointLight;
     //public List<Transform> OtherPlayer;
     //Specialized Player Due to the prefab need for shadow
@@ -24,7 +25,7 @@ public class ShadowManager : MonoBehaviour
     private float canvasScale = 100f;
     private Vector3 lightPosi;
 
-    private Dictionary<Transform, List<Vector2>> normalVertices;
+    private Dictionary<Transform, List<Vector2[]>> normalVertices;
 
     [Header("ShadowRelated Parameter")] 
     public float defaultOffsetX = 0f;
@@ -41,22 +42,21 @@ public class ShadowManager : MonoBehaviour
         reflsDic = new Dictionary<Transform, Transform>();
         refslDic = new Dictionary<GameObject, GameObject>();
         activateLightList = new List<Transform>();
-        normalVertices = new Dictionary<Transform, List<Vector2>>();
+        normalVertices = new Dictionary<Transform, List<Vector2[]>>();
         //Light, Shadow
         for (int i = 0; i < LightObjects.childCount; i++)
         {
             createShadow(LightObjects.GetChild(i));
         }
+
+        for (int i = 0; i < IndividualLightObjects.Count; i++)
+        {
+            createShadow(IndividualLightObjects[i]);
+        }
         reflsDic.Add(Player.transform,PlayerShadow.transform);
         refslDic.Add(PlayerShadow,Player);
-        EdgeCollider2D lightCollider = PlayerShadow.GetComponent<EdgeCollider2D>();
-        List<Vector2> vertices = new List<Vector2>();
-        lightCollider.GetPoints(vertices);
-        normalVertices.Add(Player.transform,vertices);
-        // for (int i = 0; i < OtherPlayer.Count; i++)
-        // {
-        //     createShadow(OtherPlayer[i]);
-        // }
+        addNormalVertices(PlayerShadow.transform,PlayerShadow.GetComponent<PolygonCollider2D>());
+
     }
 
     void Start()
@@ -67,7 +67,7 @@ public class ShadowManager : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        //templateLightMove();
+        templateLightMove();
         foreach (Transform light in activateLightList)
         {
             Transform shadowTrans = reflsDic[light].transform;
@@ -132,7 +132,6 @@ public class ShadowManager : MonoBehaviour
         }
         
         createShadowCollider(lightTransform,lightSprite.rect.height/2);
-
     }
 
     private Sprite getSprite(Transform lightTransform)
@@ -146,17 +145,26 @@ public class ShadowManager : MonoBehaviour
 
     private void createShadowCollider(Transform lightTransform,float offset)
     {
-        EdgeCollider2D lightCollider = lightTransform.GetComponent<EdgeCollider2D>();
-        List<Vector2> vertices = new List<Vector2>();
-        lightCollider.GetPoints(vertices);
+        PolygonCollider2D lightCollider = lightTransform.GetComponent<PolygonCollider2D>();
+        PolygonCollider2D shadowCollider2D = reflsDic[lightTransform].GetComponent<PolygonCollider2D>();
+        shadowCollider2D.pathCount = lightCollider.pathCount;
         //foreach (var ver in vertices) Debug.Log(ver.ToString());
-        for (int i = 0; i < vertices.Count; i++)
+        for (int i = 0; i < lightCollider.pathCount; i++)
         {
-            vertices[i] *= new Vector2(canvasScale, canvasScale);
-            vertices[i] += new Vector2(0, offset);
+            Vector2[] vertices = lightCollider.GetPath(0);
+            for (int ver = 0; ver < vertices.Length; ver++)
+            {
+                vertices[ver] *= new Vector2(canvasScale, canvasScale);
+                //vertices[ver] += new Vector2(0, offset);
+            }
+            shadowCollider2D.SetPath(i,vertices);
         }
-        if(!normalVertices.ContainsKey(lightTransform)) normalVertices.Add(lightTransform,vertices);
-        bool tryset = reflsDic[lightTransform].GetComponent<EdgeCollider2D>().SetPoints(vertices);
+
+        if (!normalVertices.ContainsKey(lightTransform))
+        {
+            addNormalVertices(lightTransform,shadowCollider2D);
+        }
+        
         //Debug.Log(tryset);
         //foreach (var ver in vertices) Debug.Log(ver.ToString());
     }
@@ -180,23 +188,36 @@ public class ShadowManager : MonoBehaviour
     private void colliderTransform(Vector2 tranformVector,Transform lightTransform)
     {
         
-        EdgeCollider2D shadowCollider = reflsDic[lightTransform].GetComponent<EdgeCollider2D>();
-        List<Vector2> vertices = new List<Vector2>( normalVertices[lightTransform].ToArray());
-        //     new List<Vector2>();
-        // shadowCollider.GetPoints(vertices);
-        //tranformVector *= canvasScale;
-        Vector3 boundSize = shadowCollider.bounds.size;
+        PolygonCollider2D shadowCollider = reflsDic[lightTransform].GetComponent<PolygonCollider2D>();
+        
+        //Vector3 boundSize = shadowCollider.bounds.size;
         float ymin = 10000f;
-        foreach (var ver in vertices)
-            if (ver.y < ymin)
-                ymin = ver.y;
-        for (int i = 0; i < vertices.Count; i++)
+        float ymax = -10000f;
+        for (int pi = 0; pi < shadowCollider.pathCount; pi++)
         {
-            vertices[i] = new Vector2(vertices[i].x-tranformVector.x*((boundSize.y-vertices[i].y)/boundSize.y)*(1+tranformVector.y)*(1+tranformVector.y), //+ymin
-                vertices[i].y*(1+tranformVector.y));//*(1+tranformVector.y)
+            Vector2[] vertices = shadowCollider.GetPath(pi);
+            foreach (var ver in vertices)
+            {
+                if (ver.y < ymin) ymin = ver.y;
+                if (ver.y > ymax) ymax = ver.y;
+            }
+        }
+
+        float ybounds = ymax - ymin;
+        for (int pi = 0; pi < shadowCollider.pathCount; pi++)
+        {
+            Vector2[] vertices = normalVertices[lightTransform][pi];
+            Vector2[] setpath = new Vector2[vertices.Length];
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                // setpath[i] = new Vector2(vertices[i].x-tranformVector.x*((ybounds-vertices[i].y)/ybounds)*(1+tranformVector.y)*(1+tranformVector.y), 
+                //     vertices[i].y*(1+tranformVector.y));//*(1+tranformVector.y)
+                setpath[i] = new Vector2(vertices[i].x+(tranformVector.x*(vertices[i].y-ymin)/ybounds) * canvasScale*(1+tranformVector.y)*(1+tranformVector.y), 
+                     vertices[i].y*(1+tranformVector.y));//*(1+tranformVector.y)
+            }
+            shadowCollider.SetPath(pi,setpath);
         }
         
-        bool tryset = reflsDic[lightTransform].GetComponent<EdgeCollider2D>().SetPoints(vertices);
     }
 
     private void imageTransform(Vector2 tranformVector, Transform lightTransform)
@@ -239,5 +260,14 @@ public class ShadowManager : MonoBehaviour
     {
         activateLightList.Add(shadowTransform);
     }
-    
+
+    private void addNormalVertices(Transform key,PolygonCollider2D pc)
+    {
+        List<Vector2[]> vertices = new List<Vector2[]>();
+        for (int path = 0; path < pc.pathCount; path++)
+        {
+            vertices.Add(pc.GetPath(path));
+        }
+        normalVertices.Add(key,vertices);
+    }
 }
