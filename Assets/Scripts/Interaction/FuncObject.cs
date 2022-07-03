@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class IFuncObject: MonoBehaviour
+public class FuncObject: MonoBehaviour
 {
     [Header("Attach")] 
     public List<UnityEvent> shadowAttach;
@@ -72,10 +72,16 @@ public class IFuncObject: MonoBehaviour
         }
     }
 
+    public void copyComponent(GameObject target)
+    {
+        UnityEditorInternal.ComponentUtility.CopyComponent(this.GetComponent<FuncObject>());
+        UnityEditorInternal.ComponentUtility.PasteComponentAsNew(target);
+    }
 
     //TODO: Just an example
     public void fadeSelf(float time)
     {
         StartCoroutine("Fade");
     }
+    
 }

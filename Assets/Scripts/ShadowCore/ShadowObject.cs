@@ -24,7 +24,7 @@ public class ShadowObject : MonoBehaviour
         {
             //Out of the Light, inform the Manager to update the shadow list
             Debug.Log(transform.name + " exit "+collision.transform.name);
-            ShadowManager.getInstance.reverseShadow(transform);
+            //ShadowManager.getInstance.reverseShadow(gameObject);
             return;
         }
         else if (collision.collider.gameObject.CompareTag("LO"))

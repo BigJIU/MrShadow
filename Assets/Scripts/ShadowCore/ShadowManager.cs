@@ -7,7 +7,9 @@ using Object = System.Object;
 public class ShadowManager : MonoBehaviour
 {
     private List<Transform> activateLightList;
-    private Dictionary<Transform, Transform> refDic;
+    private Dictionary<Transform, Transform> reflsDic;
+
+    private Dictionary<GameObject, GameObject> refslDic;
     //Instance 
     private static ShadowManager Instance;
     public static ShadowManager getInstance { get { return Instance; } }
@@ -15,7 +17,10 @@ public class ShadowManager : MonoBehaviour
     public GameObject shadowPrefab;
     public Transform LightObjects;
     public GameObject pointLight;
+    //public List<Transform> OtherPlayer;
+    //Specialized Player Due to the prefab need for shadow
     public GameObject Player;
+    public GameObject PlayerShadow;
     private float canvasScale = 100f;
     private Vector3 lightPosi;
 
@@ -33,7 +38,8 @@ public class ShadowManager : MonoBehaviour
         {
             Instance = this;
         }
-        refDic = new Dictionary<Transform, Transform>();
+        reflsDic = new Dictionary<Transform, Transform>();
+        refslDic = new Dictionary<GameObject, GameObject>();
         activateLightList = new List<Transform>();
         normalVertices = new Dictionary<Transform, List<Vector2>>();
         //Light, Shadow
@@ -41,23 +47,32 @@ public class ShadowManager : MonoBehaviour
         {
             createShadow(LightObjects.GetChild(i));
         }
+        reflsDic.Add(Player.transform,PlayerShadow.transform);
+        refslDic.Add(PlayerShadow,Player);
+        EdgeCollider2D lightCollider = PlayerShadow.GetComponent<EdgeCollider2D>();
+        List<Vector2> vertices = new List<Vector2>();
+        lightCollider.GetPoints(vertices);
+        normalVertices.Add(Player.transform,vertices);
+        // for (int i = 0; i < OtherPlayer.Count; i++)
+        // {
+        //     createShadow(OtherPlayer[i]);
+        // }
     }
 
     void Start()
     {
-
-
         lightPosi = pointLight.transform.position;
-
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
-        templateLightMove();
+        //templateLightMove();
         foreach (Transform light in activateLightList)
         {
-            refDic[light].transform.position = light.position; 
+            Transform shadowTrans = reflsDic[light].transform;
+            shadowTrans.position.Set(light.position.x,shadowTrans.position.y,shadowTrans.position.z);
+            shadowTrans.localScale.Set(light.localScale.x,shadowTrans.localScale.y,shadowTrans.localScale.z);
         }
         
         if (pointLight.transform.position != lightPosi||Input.GetAxis("Horizontal")!=0)//Input.GetKeyDown(KeyCode.O))
@@ -103,16 +118,30 @@ public class ShadowManager : MonoBehaviour
     {
         GameObject tmpShadow = Instantiate(shadowPrefab, transform);
         tmpShadow.name = lightTransform.name;
-        tmpShadow.transform.position = lightTransform.position;
-        refDic.Add(lightTransform,tmpShadow.transform);
-        Sprite lightSprite = lightTransform.gameObject.GetComponent<SpriteRenderer>().sprite;
-        
+        //reflection offset can be added here!
+        tmpShadow.transform.position = new Vector3(lightTransform.position.x,-lightTransform.position.y,lightTransform.position.z);
+        reflsDic.Add(lightTransform,tmpShadow.transform);
+        refslDic.Add(tmpShadow,lightTransform.gameObject);
+        Sprite lightSprite = getSprite(lightTransform);
         tmpShadow.GetComponent<ShapeImage>().sprite = lightSprite;
-
         tmpShadow.GetComponent<RectTransform>().sizeDelta = new Vector2(lightSprite.rect.width,lightSprite.rect.height);
-        createShadowCollider(lightTransform,lightSprite.rect.height/2);
+        FuncObject f;
+        if (lightTransform.TryGetComponent(out f))
+        {
+            f.copyComponent(tmpShadow);
+        }
         
-        //activateLightList.Add(lightTransform);
+        createShadowCollider(lightTransform,lightSprite.rect.height/2);
+
+    }
+
+    private Sprite getSprite(Transform lightTransform)
+    {
+        //return lightTransform.gameObject.GetComponent<SpriteRenderer>().sprite;
+        //TODO: Unecessary judege
+        return lightTransform.GetComponent<LightObject>().shadowSprite == null?
+            lightTransform.gameObject.GetComponent<SpriteRenderer>().sprite:
+            lightTransform.GetComponent<LightObject>().shadowSprite ;
     }
 
     private void createShadowCollider(Transform lightTransform,float offset)
@@ -121,14 +150,13 @@ public class ShadowManager : MonoBehaviour
         List<Vector2> vertices = new List<Vector2>();
         lightCollider.GetPoints(vertices);
         //foreach (var ver in vertices) Debug.Log(ver.ToString());
-        
         for (int i = 0; i < vertices.Count; i++)
         {
             vertices[i] *= new Vector2(canvasScale, canvasScale);
             vertices[i] += new Vector2(0, offset);
         }
-        normalVertices.Add(lightTransform,vertices);
-        bool tryset = refDic[lightTransform].GetComponent<EdgeCollider2D>().SetPoints(vertices);
+        if(!normalVertices.ContainsKey(lightTransform)) normalVertices.Add(lightTransform,vertices);
+        bool tryset = reflsDic[lightTransform].GetComponent<EdgeCollider2D>().SetPoints(vertices);
         //Debug.Log(tryset);
         //foreach (var ver in vertices) Debug.Log(ver.ToString());
     }
@@ -152,7 +180,7 @@ public class ShadowManager : MonoBehaviour
     private void colliderTransform(Vector2 tranformVector,Transform lightTransform)
     {
         
-        EdgeCollider2D shadowCollider = refDic[lightTransform].GetComponent<EdgeCollider2D>();
+        EdgeCollider2D shadowCollider = reflsDic[lightTransform].GetComponent<EdgeCollider2D>();
         List<Vector2> vertices = new List<Vector2>( normalVertices[lightTransform].ToArray());
         //     new List<Vector2>();
         // shadowCollider.GetPoints(vertices);
@@ -168,19 +196,19 @@ public class ShadowManager : MonoBehaviour
                 vertices[i].y*(1+tranformVector.y));//*(1+tranformVector.y)
         }
         
-        bool tryset = refDic[lightTransform].GetComponent<EdgeCollider2D>().SetPoints(vertices);
+        bool tryset = reflsDic[lightTransform].GetComponent<EdgeCollider2D>().SetPoints(vertices);
     }
 
     private void imageTransform(Vector2 tranformVector, Transform lightTransform)
     {
-        ShapeImage shapeImage = refDic[lightTransform].GetComponent<ShapeImage>();
+        ShapeImage shapeImage = reflsDic[lightTransform].GetComponent<ShapeImage>();
         Sprite tmpS = Sprite.Instantiate(shapeImage.sprite);
-        
+        //Destroy(shapeImage.sprite);
         shapeImage.sprite = tmpS;
         shapeImage.offset = tranformVector.x * canvasScale * (1+tranformVector.y);
-        Debug.Log("x:"+ tranformVector.x);
-        Debug.Log("y:"+ (1+tranformVector.y));
-        refDic[lightTransform].GetComponent<RectTransform>().sizeDelta = new Vector2(tmpS.rect.width,tmpS.rect.height*(1+tranformVector.y));
+        // Debug.Log("x:"+ tranformVector.x);
+        // Debug.Log("y:"+ (1+tranformVector.y));
+        reflsDic[lightTransform].GetComponent<RectTransform>().sizeDelta = new Vector2(tmpS.rect.width,tmpS.rect.height*(1+tranformVector.y));
         //refDic[lightTransform].localScale = new Vector3(1,- 1 - tranformVector.y/defaultYScale,1);
     }
     
@@ -189,28 +217,20 @@ public class ShadowManager : MonoBehaviour
     
     
     
-    public void reverseShadow(Transform shadowTransform)
+    public void reverseShadow(Transform lightTransform)
     {
-        // Transform lightTransform = null;
-        // foreach (var key in refDic.Keys)
-        // {
-        //     if (refDic[key] == shadowTransform)
-        //     {
-        //         lightTransform = key;
-        //         break;
-        //     }
-        //     
-        // }
-        // //TODO:Fade off Shift shadow
-        // Debug.Log("");
-        // Sprite lightSprite = lightTransform.gameObject.GetComponent<SpriteRenderer>().sprite;
-        //
-        // shadowTransform.GetComponent<ShapeImage>().sprite = lightSprite;
-        //
-        // shadowTransform.GetComponent<RectTransform>().sizeDelta = new Vector2(lightSprite.rect.width,lightSprite.rect.height);
-        // //TODO: Recover Collider
-        // //createShadowCollider(lightTransform,lightSprite.rect.height/2);
-        // activateLightList.Remove(lightTransform);
+        Transform shadowTransform = reflsDic[lightTransform];//refslDic[shadowTransform].transform;
+        //TODO:Fade off Shift shadow
+        Sprite lightSprite = lightTransform.gameObject.GetComponent<SpriteRenderer>().sprite;
+        
+        shadowTransform.GetComponent<ShapeImage>().sprite = lightSprite;
+        shadowTransform.GetComponent<ShapeImage>().offset = 0;
+        
+        shadowTransform.GetComponent<RectTransform>().sizeDelta = new Vector2(lightSprite.rect.width,lightSprite.rect.height);
+        //TODO: Recover Collider
+        createShadowCollider(lightTransform,lightSprite.rect.height/2);
+        activateLightList.Remove(lightTransform);
+        activateLightList.Remove(lightTransform);
         //Kill Old shadow
         //createShadow(lightTransform);
         //Fade in new Shadow
