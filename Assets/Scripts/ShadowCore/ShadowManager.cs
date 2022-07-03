@@ -33,6 +33,11 @@ public class ShadowManager : MonoBehaviour
         {
             Instance = this;
         }
+        
+    }
+
+    void Start()
+    {
         refDic = new Dictionary<Transform, Transform>();
         activateLightList = new List<Transform>();
         normalVertices = new Dictionary<Transform, List<Vector2>>();
@@ -41,11 +46,6 @@ public class ShadowManager : MonoBehaviour
         {
             createShadow(LightObjects.GetChild(i));
         }
-    }
-
-    void Start()
-    {
-
 
         lightPosi = pointLight.transform.position;
 
@@ -54,12 +54,11 @@ public class ShadowManager : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        templateLightMove();
+        //templateLightMove();
         foreach (Transform light in activateLightList)
         {
             refDic[light].transform.position = light.position;
         }
-        
         if (pointLight.transform.position != lightPosi)//Input.GetKeyDown(KeyCode.O))
         {
             foreach (Transform light in activateLightList)
@@ -75,7 +74,7 @@ public class ShadowManager : MonoBehaviour
     private void templateLightMove()
     {
         float movespeed = 1f;
-        if (Input.GetKey(KeyCode.W))//无脑的移动测试
+        if (Input.GetKey(KeyCode.W))//控制人物的移动
         {
             pointLight.transform.Translate(Vector3.up * movespeed * Time.deltaTime);         
         }
@@ -102,17 +101,18 @@ public class ShadowManager : MonoBehaviour
     public void createShadow(Transform lightTransform)
     {
         GameObject tmpShadow = Instantiate(shadowPrefab, transform);
-        tmpShadow.name = lightTransform.name;
-        tmpShadow.transform.position = lightTransform.position;
+        //tmpShadow.transform.position = lightTransform.po
         refDic.Add(lightTransform,tmpShadow.transform);
-        Sprite lightSprite = lightTransform.gameObject.GetComponent<SpriteRenderer>().sprite;
+        SpriteRenderer lightSprite = lightTransform.gameObject.GetComponent<SpriteRenderer>();
+        shadowPrefab.GetComponent<ShapeImage>().sprite = lightSprite.sprite;
+        //TODO:set length width ...
+        // Debug.Log(lightSprite.name);
+        // Debug.Log(lightSprite.sprite.rect.height);
+        // Debug.Log(lightSprite.sprite.rect.width);
+        tmpShadow.GetComponent<RectTransform>().sizeDelta = new Vector2(lightSprite.sprite.rect.width,lightSprite.sprite.rect.height);
+        createShadowCollider(lightTransform,lightSprite.sprite.rect.height/2);
         
-        tmpShadow.GetComponent<ShapeImage>().sprite = lightSprite;
-
-        tmpShadow.GetComponent<RectTransform>().sizeDelta = new Vector2(lightSprite.rect.width,lightSprite.rect.height);
-        createShadowCollider(lightTransform,lightSprite.rect.height/2);
-        
-        //activateLightList.Add(lightTransform);
+        activateLightList.Add(lightTransform);
     }
 
     private void createShadowCollider(Transform lightTransform,float offset)
