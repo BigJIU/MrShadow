@@ -136,7 +136,7 @@ GameObject:
   - component: {fileID: 405009583}
   - component: {fileID: 405009582}
   m_Layer: 0
-  m_Name: Chara (1)
+  m_Name: oldChar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

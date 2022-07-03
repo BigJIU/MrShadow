@@ -189,10 +189,28 @@ public class ShadowManager : MonoBehaviour
     
     
     
-    public void reverseShadow(Transform lightTransform)
+    public void reverseShadow(Transform shadowTransform)
     {
-        Transform shadowTransform = refDic[lightTransform];
-        //Fade off Shift shadow
+        // Transform lightTransform = null;
+        // foreach (var key in refDic.Keys)
+        // {
+        //     if (refDic[key] == shadowTransform)
+        //     {
+        //         lightTransform = key;
+        //         break;
+        //     }
+        //     
+        // }
+        // //TODO:Fade off Shift shadow
+        // Debug.Log("");
+        // Sprite lightSprite = lightTransform.gameObject.GetComponent<SpriteRenderer>().sprite;
+        //
+        // shadowTransform.GetComponent<ShapeImage>().sprite = lightSprite;
+        //
+        // shadowTransform.GetComponent<RectTransform>().sizeDelta = new Vector2(lightSprite.rect.width,lightSprite.rect.height);
+        // //TODO: Recover Collider
+        // //createShadowCollider(lightTransform,lightSprite.rect.height/2);
+        // activateLightList.Remove(lightTransform);
         //Kill Old shadow
         //createShadow(lightTransform);
         //Fade in new Shadow

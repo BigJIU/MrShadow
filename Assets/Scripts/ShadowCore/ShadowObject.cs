@@ -16,24 +16,7 @@ public class ShadowObject : MonoBehaviour
     {
         
     }
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        //FIXME: NOTDONE SOFAR
-        Debug.Log("collision enter shadow!");
-        if (collision.collider.gameObject.CompareTag("Light"))
-        {
-            //Into the Light range, inform the Manager to update shadow list
-            Debug.Log(transform.name + " enter "+collision.transform.name);
-            ShadowManager.getInstance.addShadowList(collision.transform);
-            return;
-        }
-        else if (collision.collider.gameObject.CompareTag("LO"))
-        {
-            
-            return;
-        }
 
-    }
 
     private void OnCollisionExit2D(Collision2D collision)
     {
