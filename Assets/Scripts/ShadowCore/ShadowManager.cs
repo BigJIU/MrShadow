@@ -60,7 +60,7 @@ public class ShadowManager : MonoBehaviour
             refDic[light].transform.position = light.position; 
         }
         
-        if (pointLight.transform.position != lightPosi)//Input.GetKeyDown(KeyCode.O))
+        if (pointLight.transform.position != lightPosi||Input.GetAxis("Horizontal")!=0)//Input.GetKeyDown(KeyCode.O))
         {
             foreach (Transform light in activateLightList)
             {
