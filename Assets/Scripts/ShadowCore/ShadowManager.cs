@@ -13,7 +13,7 @@ public class ShadowManager : MonoBehaviour
     public static ShadowManager getInstance { get { return Instance; } }
 
     public GameObject shadowPrefab;
-    public Transform LightObjects;
+    public Transform[] LightObjects;
     public GameObject pointLight;
     public GameObject Player;
     private float canvasScale = 100f;
@@ -42,9 +42,10 @@ public class ShadowManager : MonoBehaviour
         activateLightList = new List<Transform>();
         normalVertices = new Dictionary<Transform, List<Vector2>>();
         //Light, Shadow
-        for (int i = 0; i < LightObjects.childCount; i++)
+   
+        for (int i = 0; i < LightObjects.Length; i++)
         {
-            createShadow(LightObjects.GetChild(i));
+            createShadow(LightObjects[i]);
         }
 
         lightPosi = pointLight.transform.position;
@@ -59,7 +60,7 @@ public class ShadowManager : MonoBehaviour
         {
             refDic[light].transform.position = light.position; 
         }
-        if (pointLight.transform.position != lightPosi)//Input.GetKeyDown(KeyCode.O))
+        if (pointLight.transform.position != lightPosi || Input.GetAxis("Horizontal")!=0)//Input.GetKeyDown(KeyCode.O))
         {
             foreach (Transform light in activateLightList)
             {
